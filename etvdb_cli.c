@@ -56,11 +56,31 @@ Eina_Bool print_hash(const Eina_Hash *hash, const void *key, void *ser_data, voi
 
 void print_csv_episode(Episode *e)
 {
-	printf("%d|%d|%s|%s|", e->season, e->number, e->id, e->name);
-	if (!e->overview)
-		printf("|\n");
+	char *p;
+
+	printf("%d|%d|%s|", e->season, e->number, e->id);
+	if (!e->name)
+		putchar('|');
 	else
-		printf("%s|\n", e->overview);
+		printf("%s|", e->name);
+
+	if (!e->imdb_id)
+		putchar('|');
+	else
+		printf("%s|", e->imdb_id);
+
+	if (e->overview) {
+		/* for CSV-like output, we need to strip away newlines */
+		p = e->overview;
+		while (*p != 0) {
+			if (*p != '\n')
+				putchar(*p);
+			else
+				putchar(' ');
+			p++;
+		}
+	}
+	putchar('\n');
 }
 
 void print_csv_head()
