@@ -39,6 +39,7 @@ const Ecore_Getopt go_options = {
 		ECORE_GETOPT_STORE_STR('N', "sid", "tvdb id of the series"),
 		ECORE_GETOPT_STORE_STR('n', "name", "name, imdb id, or zap2it id of the series"),
 		ECORE_GETOPT_STORE_STR('l', "lang", "set language for TVDB (default: en)"),
+		ECORE_GETOPT_STORE_TRUE('i', "interactive", "requires user input during runtime"),
 		ECORE_GETOPT_LICENSE('L', "license"),
 		ECORE_GETOPT_COPYRIGHT('C', "copyright"),
 		ECORE_GETOPT_VERSION('V', "version"),
@@ -73,7 +74,7 @@ void print_csv_episode(Episode *e)
 		/* for CSV-like output, we need to strip away newlines */
 		p = e->overview;
 		while (*p != 0) {
-			if (*p != '\n')
+			if ((*p != '\r') && (*p != '\n'))
 				putchar(*p);
 			else
 				putchar(' ');
@@ -93,6 +94,33 @@ void modify_episode(Episode *e, const char *file)
 	printf("mv \"%s\" \"%d - %s\"\n", file, e->number, e->name);
 }
 
+/* allow the user to interactively select the series from results */
+void select_series(Eina_List *list, void *series)
+{
+	int i = 0, j = 1;
+	char buf[8];
+	Eina_List *l;
+	Series **s = series;
+
+	/* note: we print all interactive stuff on stderr, so stdout can be cleanly redirected */
+	fprintf(stderr, "Found the following series:\n");
+	EINA_LIST_FOREACH(list, l, *s)
+		fprintf(stderr, "\t%d: %s (%s)\n", ++i, (*s)->name, (*s)->id);
+
+	fprintf(stderr, "Select a series by entering its number [1-%d]: ", i);
+	if (!fgets(buf, 8, stdin)) {
+		puts("Invalid Input. Using default (1).");
+	} else
+		j = strtol(buf, NULL, 10);
+
+	if (j > i || j <= 0) {
+		fprintf(stderr, "Invalid Input. Using default (1).\n");
+		j = 1;
+	}
+
+	*s = eina_list_nth(list, j - 1);
+}
+
 int main(int argc, char **argv)
 {
 	int i, j;
@@ -101,7 +129,7 @@ int main(int argc, char **argv)
 	int episode_cnt = 0, season_cnt = 0;
 	char *episode_id = NULL, *series_id = NULL, *series_name = NULL;
 	char *language = NULL;
-	Eina_Bool go_quit = EINA_FALSE, lang_help = EINA_FALSE;
+	Eina_Bool go_quit = EINA_FALSE, interactive = EINA_FALSE, lang_help = EINA_FALSE;
 	Eina_List *series_list = NULL, *season_list = NULL, *l, *sl;
 	Eina_Hash *languages = NULL;
 	Episode *episode = NULL;
@@ -114,6 +142,7 @@ int main(int argc, char **argv)
 		ECORE_GETOPT_VALUE_STR(series_id),
 		ECORE_GETOPT_VALUE_STR(series_name),
 		ECORE_GETOPT_VALUE_STR(language),
+		ECORE_GETOPT_VALUE_BOOL(interactive),
 		ECORE_GETOPT_VALUE_BOOL(go_quit),
 		ECORE_GETOPT_VALUE_BOOL(go_quit),
 		ECORE_GETOPT_VALUE_BOOL(go_quit),
@@ -179,15 +208,16 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	/* find the series - for now just pick the first one, might add interactive variant later. (TODO)*/
+	/* find the series - ask user in interactive mode, else just pick the first one */
 	if (series_name) {
 		series_list = etvdb_series_find(series_name);
 		if (!series_list) {
 			ERR("Series \"%s\" not found.", series_name);
 			exit(EXIT_FAILURE);
-		} else {
+		} else if (interactive)
+			select_series(series_list, &series);
+		else
 			series = eina_list_nth(series_list, 0);
-		}
 	}
 
 	/* make sure we have a valid series structure */
