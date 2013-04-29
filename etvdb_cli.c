@@ -85,14 +85,20 @@ void print_csv_episode(Episode *e)
 
 void print_csv_head()
 {
-	printf("Season|Episode|ID|Name|Overview\n");
+	printf("Season|Episode|ID|Name|IMDB|Overview\n");
+}
+
+void modify_episode(Episode *e, const char *file)
+{
+	printf("mv \"%s\" \"%d - %s\"\n", file, e->number, e->name);
 }
 
 int main(int argc, char **argv)
 {
-	int go_index;
+	int i, j;
+	int extra_args, go_index;
 	int episode_num = 0, season_num = 0;
-	int extra_args;
+	int episode_cnt = 0, season_cnt = 0;
 	char *episode_id = NULL, *series_id = NULL, *series_name = NULL;
 	char *language = NULL;
 	Eina_Bool go_quit = EINA_FALSE, lang_help = EINA_FALSE;
@@ -207,14 +213,45 @@ int main(int argc, char **argv)
 				EINA_LIST_FOREACH(season_list, sl, episode)
 					print_csv_episode(episode);
 			}
-		} else if (season_num) {
+	} else if (season_num) {
 			season_list = eina_list_nth(series->seasons, season_num - 1);
 			EINA_LIST_FOREACH(season_list, sl, episode)
 				print_csv_episode(episode);
 		}
-	/* here we go into file mode */
+	/* here we go into bulk file mode */
 	} else {
-		// TODO
+		if (episode) {
+			modify_episode(episode, argv[go_index]);
+		} else if (season_num) {
+			season_list = eina_list_nth(series->seasons, season_num - 1);
+			season_cnt = eina_list_count(season_list);
+			EINA_LIST_FOREACH(season_list, sl, episode) {
+				if ((go_index >= season_cnt) || (argc == go_index))
+					break;
+				else
+					modify_episode(episode, argv[go_index++]);
+			}
+		} else {
+			season_cnt = eina_list_count(series->seasons);
+			season_list = eina_list_nth(series->seasons, 0);
+			episode_cnt = eina_list_count(season_list);
+			i = j = 1;
+			for (; go_index < argc; go_index++) {
+				if (i > season_cnt)
+					break;
+
+				if (j > episode_cnt) {
+					i++;
+					j = 1;
+					season_list = eina_list_nth(series->seasons, i - 1);
+					episode_cnt = eina_list_count(season_list);
+				}
+
+				episode = etvdb_episode_from_series_get(series, i, j);
+				modify_episode(episode, argv[go_index]);
+				j++;
+			}
+		}
 	}
 
 
