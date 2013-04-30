@@ -256,7 +256,7 @@ int main(int argc, char **argv)
 			season_list = eina_list_nth(series->seasons, season_num - 1);
 			season_cnt = eina_list_count(season_list);
 			EINA_LIST_FOREACH(season_list, sl, episode) {
-				if ((go_index >= season_cnt) || (argc == go_index))
+				if (((go_index - extra_args) >= season_cnt) || (argc == go_index))
 					break;
 				else
 					modify_episode(episode, argv[go_index++]);
@@ -278,6 +278,8 @@ int main(int argc, char **argv)
 				}
 
 				episode = etvdb_episode_from_series_get(series, i, j);
+				if (!episode)
+					break;
 				modify_episode(episode, argv[go_index]);
 				j++;
 			}
