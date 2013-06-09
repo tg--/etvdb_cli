@@ -143,7 +143,7 @@ void modify_episode(Episode *e, const char *file, const char *template)
 			ERR("Invalid Input. Skipping rename.");
 			goto END;
 		} else if (strncmp(buf, "y", 2) != 0) {
-			fprintf(stderr, "Skipping this file, per your wish.\n")
+			fprintf(stderr, "Skipping this file, per your wish.\n");
 			goto END;
 		}
 	}
