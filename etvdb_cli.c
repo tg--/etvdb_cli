@@ -137,9 +137,20 @@ void modify_episode(Episode *e, const char *file, const char *template)
 	eina_strbuf_prepend_char(strbuf, '/');
 	eina_strbuf_prepend(strbuf, path);
 
-	/* TODO: ask before moving in interactive mode */
+	if (interactive) {
+		fprintf(stderr, "Rename \"%s\" to \"%s\"? \'y\' to accept: ", file, eina_strbuf_string_get(strbuf));
+		if (!fgets(buf, 32, stdin)) {
+			ERR("Invalid Input. Skipping rename.");
+			goto END;
+		} else if (strncmp(buf, "y", 2) != 0) {
+			fprintf(stderr, "Skipping this file, per your wish.\n")
+			goto END;
+		}
+	}
+
 	ecore_file_mv(file, eina_strbuf_string_get(strbuf));
 
+END:
 	eina_strbuf_free(strbuf);
 	free(path);
 }
