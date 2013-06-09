@@ -25,6 +25,9 @@
 #include <Eina.h>
 #include <etvdb.h>
 
+/* global: interactive mode */
+Eina_Bool interactive;
+
 const Ecore_Getopt go_options = {
 	"etvdb_cli",
 	"%prog [options] <files>",
@@ -175,11 +178,14 @@ int main(int argc, char **argv)
 	int episode_num = 0, season_num = 0;
 	int episode_cnt = 0, season_cnt = 0;
 	char *episode_id = NULL, *language = NULL, *series_id = NULL, *series_name = NULL, *template = NULL;
-	Eina_Bool go_quit = EINA_FALSE, interactive = EINA_FALSE, lang_help = EINA_FALSE;
+	Eina_Bool go_quit = EINA_FALSE, lang_help = EINA_FALSE;
 	Eina_List *series_list = NULL, *season_list = NULL, *l, *sl;
 	Eina_Hash *languages = NULL;
 	Episode *episode = NULL;
 	Series *series = NULL;
+
+	/* interactive mode defaults to OFF */
+	interactive = EINA_FALSE;
 
 	Ecore_Getopt_Value go_values[] = {
 		ECORE_GETOPT_VALUE_INT(episode_num),
