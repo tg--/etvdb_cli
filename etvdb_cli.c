@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <Ecore.h>
+#include <Ecore_File.h>
 #include <Ecore_Getopt.h>
 #include <Eina.h>
 #include <etvdb.h>
@@ -38,6 +39,7 @@ const Ecore_Getopt go_options = {
 		ECORE_GETOPT_STORE_STR('E', "eid", "tvdb id of the episode"),
 		ECORE_GETOPT_STORE_STR('N', "sid", "tvdb id of the series"),
 		ECORE_GETOPT_STORE_STR('n', "name", "name, imdb id, or zap2it id of the series"),
+		ECORE_GETOPT_STORE_STR('t', "template", "filename: #e = episode, #s = season, #n = name"),
 		ECORE_GETOPT_STORE_STR('l', "lang", "set language for TVDB (default: en)"),
 		ECORE_GETOPT_STORE_TRUE('i', "interactive", "requires user input during runtime"),
 		ECORE_GETOPT_LICENSE('L', "license"),
@@ -89,9 +91,54 @@ void print_csv_head()
 	printf("Season|Episode|ID|Name|IMDB|Overview\n");
 }
 
-void modify_episode(Episode *e, const char *file)
+/* modify episode. rename, tag (TODO)
+ * template can be NULL so it isn't used */
+void modify_episode(Episode *e, const char *file, const char *template)
 {
-	printf("mv \"%s\" \"%d - %s\"\n", file, e->number, e->name);
+	char *suffix;
+	char *path;
+	char *filename;
+	char buf[32];
+	Eina_Strbuf *strbuf;
+
+	if (!ecore_file_exists(file)) {
+		ERR("File \'%s\' doesn't exist. Nothing to do here.", file);
+		return;
+	}
+
+	suffix = strrchr(file, '.');
+	if (!suffix) {
+		ERR("File \'%s\' has no suffix. Won't touch this.", file);
+		return;
+	}
+
+	if (template) {
+		filename = strdup(template);
+		strbuf = eina_strbuf_manage_new(filename);
+
+		eina_convert_itoa(e->number, buf);
+		eina_strbuf_replace_all(strbuf, "#e", buf);
+
+		eina_strbuf_replace_all(strbuf, "#n", e->name);
+
+		eina_convert_itoa(e->season, buf);
+		eina_strbuf_replace_all(strbuf, "#s", buf);
+
+		eina_strbuf_append(strbuf, suffix);
+	} else {
+		strbuf = eina_strbuf_new();
+		eina_strbuf_append_printf(strbuf, "%d - %s%s", e->number, e->name, suffix);
+	}
+
+	path = ecore_file_dir_get(file);
+	eina_strbuf_prepend_char(strbuf, '/');
+	eina_strbuf_prepend(strbuf, path);
+
+	/* TODO: ask before moving in interactive mode */
+	ecore_file_mv(file, eina_strbuf_string_get(strbuf));
+
+	eina_strbuf_free(strbuf);
+	free(path);
 }
 
 /* allow the user to interactively select the series from results */
@@ -127,8 +174,7 @@ int main(int argc, char **argv)
 	int extra_args, go_index;
 	int episode_num = 0, season_num = 0;
 	int episode_cnt = 0, season_cnt = 0;
-	char *episode_id = NULL, *series_id = NULL, *series_name = NULL;
-	char *language = NULL;
+	char *episode_id = NULL, *language = NULL, *series_id = NULL, *series_name = NULL, *template = NULL;
 	Eina_Bool go_quit = EINA_FALSE, interactive = EINA_FALSE, lang_help = EINA_FALSE;
 	Eina_List *series_list = NULL, *season_list = NULL, *l, *sl;
 	Eina_Hash *languages = NULL;
@@ -141,6 +187,7 @@ int main(int argc, char **argv)
 		ECORE_GETOPT_VALUE_STR(episode_id),
 		ECORE_GETOPT_VALUE_STR(series_id),
 		ECORE_GETOPT_VALUE_STR(series_name),
+		ECORE_GETOPT_VALUE_STR(template),
 		ECORE_GETOPT_VALUE_STR(language),
 		ECORE_GETOPT_VALUE_BOOL(interactive),
 		ECORE_GETOPT_VALUE_BOOL(go_quit),
@@ -251,7 +298,7 @@ int main(int argc, char **argv)
 	/* here we go into bulk file mode */
 	} else {
 		if (episode) {
-			modify_episode(episode, argv[go_index]);
+			modify_episode(episode, argv[go_index], template);
 		} else if (season_num) {
 			season_list = eina_list_nth(series->seasons, season_num - 1);
 			season_cnt = eina_list_count(season_list);
@@ -259,7 +306,7 @@ int main(int argc, char **argv)
 				if (((go_index - extra_args) >= season_cnt) || (argc == go_index))
 					break;
 				else
-					modify_episode(episode, argv[go_index++]);
+					modify_episode(episode, argv[go_index++], template);
 			}
 		} else {
 			season_cnt = eina_list_count(series->seasons);
@@ -280,11 +327,12 @@ int main(int argc, char **argv)
 				episode = etvdb_episode_from_series_get(series, i, j);
 				if (!episode)
 					break;
-				modify_episode(episode, argv[go_index]);
+				modify_episode(episode, argv[go_index], template);
 				j++;
 			}
 		}
 	}
+	/* TODO: detection mode, detect episode and season based on input filename */
 
 
 	EINA_LIST_FREE(series_list, series)
