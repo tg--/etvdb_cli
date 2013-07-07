@@ -127,6 +127,10 @@ void modify_episode(Episode *e, const char *file, const char *template)
 		eina_convert_itoa(e->season, buf);
 		eina_strbuf_replace_all(strbuf, "#s", buf);
 
+		path = ecore_file_dir_get(eina_strbuf_string_get(strbuf));
+		ecore_file_mkpath(path);
+		free(path);
+
 		eina_strbuf_append(strbuf, suffix);
 	} else {
 		strbuf = eina_strbuf_new();
