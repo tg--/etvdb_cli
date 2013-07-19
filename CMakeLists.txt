@@ -1,14 +1,20 @@
+cmake_minimum_required(VERSION 2.8)
+project(ETVDB_CLI)
+set(PACKAGE_VERSION 0.0.1)
+set(PACKAGE ${CMAKE_PROJECT_NAME})
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+
 INCLUDE(FindPkgConfig)
+pkg_check_modules(EINA REQUIRED eina)
+pkg_check_modules(ECORE REQUIRED ecore)
 pkg_check_modules(ECORE-FILE REQUIRED ecore-file)
 
-include_directories(${ETVDB_SOURCE_DIR}/lib ${ECORE-FILE_INCLUDE_DIRS})
-link_directories(${ETVDB_BINARY_DIR}/lib)
-
-# don't build etvdb_test by default
-#add_executable(etvdb_test etvdb_test.c)
-#target_link_libraries(etvdb_test etvdb)
+include_directories(${EINA_INCLUDE_DIRS} ${ECORE_INCLUDE_DIRS}
+	${ECORE-FILE_INCLUDE_DIRS})
 
 add_executable(etvdb_cli etvdb_cli.c)
-target_link_libraries(etvdb_cli etvdb ${ECORE-FILE_LIBRARIES})
+target_link_libraries(etvdb_cli etvdb ${EINA_LIBRARIES}
+	${ECORE_LIBRARIES} ${ECORE-FILE_LIBRARIES})
 
 install(TARGETS etvdb_cli RUNTIME DESTINATION bin)
