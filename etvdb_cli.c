@@ -42,7 +42,7 @@ const Ecore_Getopt go_options = {
 		ECORE_GETOPT_STORE_STR('E', "eid", "tvdb id of the episode"),
 		ECORE_GETOPT_STORE_STR('N', "sid", "tvdb id of the series"),
 		ECORE_GETOPT_STORE_STR('n', "name", "name, imdb id, or zap2it id of the series"),
-		ECORE_GETOPT_STORE_STR('t', "template", "filename: #e = episode, #s = season, #n = name"),
+		ECORE_GETOPT_STORE_STR('t', "template", "define a template to rename accordingly"),
 		ECORE_GETOPT_STORE_STR('l', "lang", "set language for TVDB (default: en)"),
 		ECORE_GETOPT_STORE_TRUE('i', "interactive", "requires user input during runtime"),
 		ECORE_GETOPT_LICENSE('L', "license"),
@@ -50,6 +50,7 @@ const Ecore_Getopt go_options = {
 		ECORE_GETOPT_VERSION('V', "version"),
 		ECORE_GETOPT_HELP('h', "help"),
 		ECORE_GETOPT_STORE_TRUE('H', "lang-help", "show available languages"),
+		ECORE_GETOPT_STORE_TRUE('T', "template-help", "show available template formats"),
 		ECORE_GETOPT_SENTINEL
 	}
 };
@@ -119,13 +120,19 @@ void modify_episode(Episode *e, const char *file, const char *template)
 		filename = strdup(template);
 		strbuf = eina_strbuf_manage_new(filename);
 
+		/* Episode number */
 		eina_convert_itoa(e->number, buf);
 		eina_strbuf_replace_all(strbuf, "#e", buf);
 
+		/* Episode name */
 		eina_strbuf_replace_all(strbuf, "#n", e->name);
 
+		/* Season number */
 		eina_convert_itoa(e->season, buf);
 		eina_strbuf_replace_all(strbuf, "#s", buf);
+
+		/* Series name */
+		eina_strbuf_replace_all(strbuf, "#N", e->series->name);
 
 		path = ecore_file_dir_get(eina_strbuf_string_get(strbuf));
 		ecore_file_mkpath(path);
@@ -193,7 +200,7 @@ int main(int argc, char **argv)
 	int episode_num = 0, season_num = 0;
 	int episode_cnt = 0, season_cnt = 0;
 	char *episode_id = NULL, *language = NULL, *series_id = NULL, *series_name = NULL, *template = NULL;
-	Eina_Bool go_quit = EINA_FALSE, lang_help = EINA_FALSE;
+	Eina_Bool go_quit = EINA_FALSE, lang_help = EINA_FALSE, temp_help = EINA_FALSE;
 	Eina_List *series_list = NULL, *season_list = NULL, *l, *sl;
 	Eina_Hash *languages = NULL;
 	Episode *episode = NULL;
@@ -216,6 +223,7 @@ int main(int argc, char **argv)
 		ECORE_GETOPT_VALUE_BOOL(go_quit),
 		ECORE_GETOPT_VALUE_BOOL(go_quit),
 		ECORE_GETOPT_VALUE_BOOL(lang_help),
+		ECORE_GETOPT_VALUE_BOOL(temp_help),
 		ECORE_GETOPT_VALUE_NONE
 	};
 
@@ -235,6 +243,21 @@ int main(int argc, char **argv)
 
 	/* store if we have non-option arguments */
 	extra_args = argc - go_index;
+
+	/* template help */
+	if (temp_help) {
+		printf("Templates allow to define how episodes are stored.\n"
+			"Paths in templates are allowed and will be created if necessary.\n\n"
+			"How to use templates:\n"
+			"\t#e:\tEpisode Number\n"
+			"\t#n:\tEpisode Name\n"
+			"\t#s:\tSeason Number\n"
+			"\t#N:\tSeries Name\n\n"
+			"Example: \'-t \"#N/#s/#e - #n\"\' - will store an episode like this:\n"
+			"\tSeriesname/1/1 - Episodename.avi\n"
+			);
+		exit(EXIT_SUCCESS);
+	}
 
 	/* language setup/help */
 	if (language || lang_help) {
