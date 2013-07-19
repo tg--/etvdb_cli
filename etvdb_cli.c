@@ -294,9 +294,9 @@ int main(int argc, char **argv)
 
 	/* initialize episode, if no episode requested, get all of them */
 	if (episode_id)
-		episode = etvdb_episode_by_id_get(episode_id);
+		episode = etvdb_episode_by_id_get(episode_id, series);
 	else if (episode_num && season_num)
-		episode = etvdb_episode_by_number_get(series->id, season_num, episode_num);
+		episode = etvdb_episode_by_number_get(series, season_num, episode_num);
 	else
 		etvdb_series_populate(series);
 
