@@ -16,13 +16,13 @@ and [the etvdb library][3].
 This is super easy:
 ```
 mkdir BUILD/ && cd BUILD/
-cmake .. && make && make install
+cmake .. && make && sudo make install
 ```
 
 The dependencies are Eina, Ecore and etvdb.
 
 3) License
 ----------
-libetvdb is available under the GPLv3 or any later version.
+etvdb_cli is available under the GPLv3 or any later version.
 
 See COPYING for details.
