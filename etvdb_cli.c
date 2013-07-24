@@ -132,7 +132,6 @@ Eina_Bool print_query_episode(const char *q, Episode *e)
 		printf("%d\n", e->number);
 	else if (!strcmp(q, "eseason"))
 		printf("%d\n", e->season);
-	/* else if (strcmp()) */
 	/* if query is not found in episode, look it up in series */
 	else {
 		if (!print_query_series(q, e->series))
