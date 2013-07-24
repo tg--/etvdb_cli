@@ -16,5 +16,6 @@ include_directories(${EINA_INCLUDE_DIRS} ${ECORE_INCLUDE_DIRS}
 add_executable(etvdb_cli etvdb_cli.c)
 target_link_libraries(etvdb_cli etvdb ${EINA_LIBRARIES}
 	${ECORE_LIBRARIES} ${ECORE-FILE_LIBRARIES})
+set_target_properties(etvdb_cli PROPERTIES OUTPUT_NAME etvdb)
 
 install(TARGETS etvdb_cli RUNTIME DESTINATION bin)
