@@ -387,7 +387,6 @@ int main(int argc, char **argv)
 		series = etvdb_series_by_id_get(series_id);
 	else {
 		series_id = strdup(series->id);
-		/* TODO: fix memleak in "series" */
 		series = etvdb_series_by_id_get(series_id);
 		free(series_id);
 	}
@@ -463,6 +462,10 @@ int main(int argc, char **argv)
 	}
 	/* TODO: detection mode, detect episode and season based on input filename */
 
+
+	/* free the series, not in series_list first */
+	if (series)
+		etvdb_series_free(series);
 
 	EINA_LIST_FREE(series_list, series)
 		etvdb_series_free(series);
