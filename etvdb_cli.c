@@ -44,12 +44,14 @@ const Ecore_Getopt go_options = {
 		ECORE_GETOPT_STORE_STR('n', "name", "name, imdb id, or zap2it id of the series"),
 		ECORE_GETOPT_STORE_STR('t', "template", "define a template to rename accordingly"),
 		ECORE_GETOPT_STORE_STR('l', "lang", "set language for TVDB (default: en)"),
+		ECORE_GETOPT_STORE_STR('q', "query", "query for a certain property"),
 		ECORE_GETOPT_STORE_TRUE('i', "interactive", "requires user input during runtime"),
 		ECORE_GETOPT_LICENSE('L', "license"),
 		ECORE_GETOPT_COPYRIGHT('C', "copyright"),
 		ECORE_GETOPT_VERSION('V', "version"),
 		ECORE_GETOPT_HELP('h', "help"),
 		ECORE_GETOPT_STORE_TRUE('H', "lang-help", "show available languages"),
+		ECORE_GETOPT_STORE_TRUE('Q', "query-help", "show available query parameters"),
 		ECORE_GETOPT_STORE_TRUE('T', "template-help", "show available template formats"),
 		ECORE_GETOPT_SENTINEL
 	}
@@ -93,6 +95,50 @@ void print_csv_episode(Episode *e)
 void print_csv_head()
 {
 	printf("Season|Episode|ID|Name|IMDB|Overview\n");
+}
+
+/* answer a query for a series */
+Eina_Bool print_query_series(const char *q, Series *s)
+{
+	if (!strcmp(q, "sid"))
+		printf("%s\n", s->id);
+	else if (!strcmp(q, "simdb"))
+		printf("%s\n", s->imdb_id);
+	else if (!strcmp(q, "sname"))
+		printf("%s\n", s->name);
+	else if (!strcmp(q, "soverview"))
+		printf("%s\n", s->overview);
+	else if (!strcmp(q, "runtime"))
+		printf("%d\n", s->runtime);
+	else {
+		ERR("Query parameter \'%s\' undefined.", q);
+		return EINA_FALSE;
+	}
+	return EINA_TRUE;
+}
+
+/* answer a query for an episode */
+Eina_Bool print_query_episode(const char *q, Episode *e)
+{
+	if (!strcmp(q, "eid"))
+		printf("%s\n", e->id);
+	else if (!strcmp(q, "eimdb"))
+		printf("%s\n", e->imdb_id);
+	else if (!strcmp(q, "ename"))
+		printf("%s\n", e->name);
+	else if (!strcmp(q, "eoverview"))
+		printf("%s\n", e->overview);
+	else if (!strcmp(q, "enumber"))
+		printf("%d\n", e->number);
+	else if (!strcmp(q, "eseason"))
+		printf("%d\n", e->season);
+	/* else if (strcmp()) */
+	/* if query is not found in episode, look it up in series */
+	else {
+		if (!print_query_series(q, e->series))
+			return EINA_FALSE;
+	}
+	return EINA_TRUE;
 }
 
 /* modify episode. rename, tag (TODO)
@@ -199,8 +245,9 @@ int main(int argc, char **argv)
 	int extra_args, go_index;
 	int episode_num = 0, season_num = 0;
 	int episode_cnt = 0, season_cnt = 0;
-	char *episode_id = NULL, *language = NULL, *series_id = NULL, *series_name = NULL, *template = NULL;
-	Eina_Bool go_quit = EINA_FALSE, lang_help = EINA_FALSE, temp_help = EINA_FALSE;
+	int ret = EXIT_SUCCESS;
+	char *episode_id = NULL, *language = NULL, *query = NULL, *series_id = NULL, *series_name = NULL, *template = NULL;
+	Eina_Bool go_quit = EINA_FALSE, lang_help = EINA_FALSE, qry_help = EINA_FALSE, temp_help = EINA_FALSE;
 	Eina_List *series_list = NULL, *season_list = NULL, *l, *sl;
 	Eina_Hash *languages = NULL;
 	Episode *episode = NULL;
@@ -217,12 +264,14 @@ int main(int argc, char **argv)
 		ECORE_GETOPT_VALUE_STR(series_name),
 		ECORE_GETOPT_VALUE_STR(template),
 		ECORE_GETOPT_VALUE_STR(language),
+		ECORE_GETOPT_VALUE_STR(query),
 		ECORE_GETOPT_VALUE_BOOL(interactive),
 		ECORE_GETOPT_VALUE_BOOL(go_quit),
 		ECORE_GETOPT_VALUE_BOOL(go_quit),
 		ECORE_GETOPT_VALUE_BOOL(go_quit),
 		ECORE_GETOPT_VALUE_BOOL(go_quit),
 		ECORE_GETOPT_VALUE_BOOL(lang_help),
+		ECORE_GETOPT_VALUE_BOOL(qry_help),
 		ECORE_GETOPT_VALUE_BOOL(temp_help),
 		ECORE_GETOPT_VALUE_NONE
 	};
@@ -259,6 +308,26 @@ int main(int argc, char **argv)
 		exit(EXIT_SUCCESS);
 	}
 
+	if (qry_help) {
+		printf("Quaries allow to retrieve any single property of an episode or series.\n"
+			"They are available by series or by episode (like in upstream TVDB),\n"
+			"Episode Parameters:\n"
+			"\teid\t\t-- Episode ID\n"
+			"\teimdb\t\t-- Episode IMDB ID\n"
+			"\tename\t\t-- Episode Name\n"
+			"\teoverview\t-- Episode Story Overview\n"
+			"\tenumber\t\t-- Episode Number\n"
+			"\teseason\t\t-- Season the Episode is in\n"
+			"Series Parameters:\n"
+			"\tsid\t\t-- Series ID\n"
+			"\tsimdb\t\t-- Series IMDB ID\n"
+			"\tsname\t\t-- Series Name\n"
+			"\tsoverview\t-- Series Story Overview\n"
+			"\truntime\t\t-- Typical Episode Runtime\n"
+		      );
+		exit(EXIT_SUCCESS);
+	}
+
 	/* language setup/help */
 	if (language || lang_help) {
 		languages = etvdb_languages_get(NULL);
@@ -282,7 +351,10 @@ int main(int argc, char **argv)
 	}
 
 	/* a certain set of options is required to be useful, else we can quit right away */
-	if ((episode_id || episode_num) && (extra_args) > 1) {
+	if (query && extra_args) {
+		ERR("Querys don't work if you pass non-parameter arguments, like files.");
+		exit(EXIT_FAILURE);
+	} else if ((episode_id || episode_num) && (extra_args) > 1) {
 		ERR("You are looking for a Episode, but passed more than one file; please use only one file.");
 		exit(EXIT_FAILURE);
 	} else if (!series_id && !series_name && !episode_id) {
@@ -323,9 +395,17 @@ int main(int argc, char **argv)
 	else
 		etvdb_series_populate(series);
 
-
+	/* in query mode, we answer a single query */
+	if (query) {
+		if (episode) {
+			if (!print_query_episode(query, episode))
+				ret = EXIT_FAILURE;
+		} else if (series) {
+			if (!print_query_series(query, series))
+				ret = EXIT_FAILURE;
+		}
 	/* if no files are passed, we just print everything requested in a simple CSV format */
-	if (!extra_args) {
+	} else if (!extra_args && !query) {
 		print_csv_head();
 		if (episode)
 			print_csv_episode(episode);
@@ -384,5 +464,5 @@ int main(int argc, char **argv)
 
 	etvdb_shutdown();
 	ecore_shutdown();
-	exit(EXIT_SUCCESS);
+	exit(ret);
 }
