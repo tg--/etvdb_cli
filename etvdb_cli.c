@@ -386,6 +386,12 @@ int main(int argc, char **argv)
 	/* make sure we have a valid series structure */
 	if (!series)
 		series = etvdb_series_by_id_get(series_id);
+	else {
+		series_id = strdup(series->id);
+		/* TODO: fix memleak in "series" */
+		series = etvdb_series_by_id_get(series_id);
+		free(series_id);
+	}
 
 	/* initialize episode, if no episode requested, get all of them */
 	if (episode_id)
