@@ -309,7 +309,7 @@ int main(int argc, char **argv)
 	}
 
 	if (qry_help) {
-		printf("Quaries allow to retrieve any single property of an episode or series.\n"
+		printf("Queries allow to retrieve any single property of an episode or series.\n"
 			"They are available by series or by episode (like in upstream TVDB),\n"
 			"Episode Parameters:\n"
 			"\teid\t\t-- Episode ID\n"
@@ -352,7 +352,7 @@ int main(int argc, char **argv)
 
 	/* a certain set of options is required to be useful, else we can quit right away */
 	if (query && extra_args) {
-		ERR("Querys don't work if you pass non-parameter arguments, like files.");
+		ERR("Queries don't work if you pass non-parameter arguments, like files.");
 		exit(EXIT_FAILURE);
 	} else if ((episode_id || episode_num) && (extra_args) > 1) {
 		ERR("You are looking for a Episode, but passed more than one file; please use only one file.");
