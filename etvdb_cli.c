@@ -334,7 +334,7 @@ int main(int argc, char **argv)
 				EINA_LIST_FOREACH(season_list, sl, episode)
 					print_csv_episode(episode);
 			}
-	} else if (season_num) {
+		} else if (season_num) {
 			season_list = eina_list_nth(series->seasons, season_num - 1);
 			EINA_LIST_FOREACH(season_list, sl, episode)
 				print_csv_episode(episode);
