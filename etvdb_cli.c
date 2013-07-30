@@ -235,7 +235,7 @@ void select_series(Eina_List *list, void *series)
 		j = 1;
 	}
 
-	*s = eina_list_nth(list, j - 1);
+	*s = etvdb_series_from_list_get(list, j - 1);
 }
 
 int main(int argc, char **argv)
@@ -379,17 +379,12 @@ int main(int argc, char **argv)
 		} else if (interactive)
 			select_series(series_list, &series);
 		else
-			series = eina_list_nth(series_list, 0);
+			series = etvdb_series_from_list_get(series_list, 0);
 	}
 
 	/* make sure we have a valid series structure */
 	if (!series)
 		series = etvdb_series_by_id_get(series_id);
-	else {
-		series_id = strdup(series->id);
-		series = etvdb_series_by_id_get(series_id);
-		free(series_id);
-	}
 
 	/* initialize episode, if no episode requested, get all of them */
 	if (episode_id)
