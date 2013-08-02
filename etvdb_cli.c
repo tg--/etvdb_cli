@@ -110,6 +110,8 @@ Eina_Bool print_query_series(const char *q, Series *s)
 		printf("%s\n", s->overview);
 	else if (!strcmp(q, "runtime"))
 		printf("%d\n", s->runtime);
+	else if (!strcmp(q, "aired_latest"))
+		print_csv_episode(etvdb_episode_latest_aired_get(s, NULL));
 	else {
 		ERR("Query parameter \'%s\' undefined.", q);
 		return EINA_FALSE;
@@ -132,6 +134,8 @@ Eina_Bool print_query_episode(const char *q, Episode *e)
 		printf("%d\n", e->number);
 	else if (!strcmp(q, "eseason"))
 		printf("%d\n", e->season);
+	else if (!strcmp(q, "eaired"))
+		printf("%s\n", e->firstaired);
 	/* if query is not found in episode, look it up in series */
 	else {
 		if (!print_query_series(q, e->series))
@@ -311,6 +315,8 @@ int main(int argc, char **argv)
 		printf("Queries allow to retrieve any single property of an episode or series.\n"
 			"They are available by series or by episode (like in upstream TVDB),\n"
 			"Episode Parameters:\n"
+			"\taired_latest\t-- Episode that aired most recently (in CSV format)\n"
+			"\teaired\t\t-- Episode aired first at this date\n"
 			"\teid\t\t-- Episode ID\n"
 			"\teimdb\t\t-- Episode IMDB ID\n"
 			"\tename\t\t-- Episode Name\n"
