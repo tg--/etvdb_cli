@@ -389,8 +389,10 @@ int main(int argc, char **argv)
 	}
 
 	/* make sure we have a valid series structure */
-	if (!series)
+	if (!series) {
 		series = etvdb_series_by_id_get(series_id);
+		series_list = eina_list_prepend(series_list, series);
+	}
 
 	/* initialize episode, if no episode requested, get all of them */
 	if (episode_id)
@@ -462,11 +464,6 @@ int main(int argc, char **argv)
 		}
 	}
 	/* TODO: detection mode, detect episode and season based on input filename */
-
-
-	/* free the series, not in series_list first */
-	if (series)
-		etvdb_series_free(series);
 
 	EINA_LIST_FREE(series_list, series)
 		etvdb_series_free(series);
