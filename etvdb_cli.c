@@ -27,6 +27,8 @@
 
 /* global: interactive mode */
 Eina_Bool interactive;
+/* global: zero padding */
+Eina_Bool zero_pad;
 
 const Ecore_Getopt go_options = {
 	"etvdb_cli",
@@ -53,9 +55,40 @@ const Ecore_Getopt go_options = {
 		ECORE_GETOPT_STORE_TRUE('H', "lang-help", "show available languages"),
 		ECORE_GETOPT_STORE_TRUE('Q', "query-help", "show available query parameters"),
 		ECORE_GETOPT_STORE_TRUE('T', "template-help", "show available template formats"),
+		ECORE_GETOPT_STORE_TRUE('0', "no-pad", "don't pad season/episode numbers"),
 		ECORE_GETOPT_SENTINEL
 	}
 };
+
+/* return a padded string from an int according to a reference int (usually a maximum)
+ * needs to be free()d after use */
+char *itoa_pad_by_reference(int value, int reference)
+{
+	char *s, *p;
+	int ref_digits = 0, val_digits = 0, num;
+
+	num = value;
+	while (num > 0) {
+		num/=10;
+		++val_digits;
+	}
+
+	num = reference;
+	while (num > 0) {
+		num/=10;
+		++ref_digits;
+	}
+
+	s = malloc(ref_digits + 1);
+	p = s;
+	for (num = 1; num <= (ref_digits - val_digits); num++) {
+		*p = '0';
+		p++;
+	}
+	sprintf(p, "%d", value);
+
+	return s;
+}
 
 Eina_Bool print_hash(const Eina_Hash *hash, const void *key, void *ser_data, void *fser_data)
 {
@@ -136,7 +169,7 @@ Eina_Bool print_query_episode(const char *q, Episode *e)
 		printf("%d\n", e->season);
 	else if (!strcmp(q, "eaired"))
 		printf("%s\n", e->firstaired);
-	/* if query is not found in episode, look it up in series */
+	/* if queeina_list_nth_list it up in series */
 	else {
 		if (!print_query_series(q, e->series))
 			return EINA_FALSE;
@@ -148,10 +181,12 @@ Eina_Bool print_query_episode(const char *q, Episode *e)
  * template can be NULL so it isn't used */
 void modify_episode(Episode *e, const char *file, const char *template)
 {
+	char *buf;
 	char *suffix;
 	char *path;
 	char *filename;
-	char buf[32];
+	int num;
+	Eina_List *list;
 	Eina_Strbuf *strbuf;
 
 	if (!ecore_file_exists(file)) {
@@ -170,15 +205,30 @@ void modify_episode(Episode *e, const char *file, const char *template)
 		strbuf = eina_strbuf_manage_new(filename);
 
 		/* Episode number */
-		eina_convert_itoa(e->number, buf);
+		if (zero_pad && e->series) {
+			list = eina_list_nth(e->series->seasons, e->season - 1);
+			buf = itoa_pad_by_reference(e->number, eina_list_count(list));
+		} else {
+			buf = malloc(32);
+			eina_convert_itoa(e->number, buf);
+		}
+
 		eina_strbuf_replace_all(strbuf, "#e", buf);
+		free(buf);
 
 		/* Episode name */
 		eina_strbuf_replace_all(strbuf, "#n", e->name);
 
 		/* Season number */
-		eina_convert_itoa(e->season, buf);
+		if (zero_pad && e->series)
+			buf = itoa_pad_by_reference(e->season, eina_list_count(e->series->seasons));
+		else {
+			buf = malloc(32);
+			eina_convert_itoa(e->season, buf);
+		}
+
 		eina_strbuf_replace_all(strbuf, "#s", buf);
+		free(buf);
 
 		/* Series name */
 		eina_strbuf_replace_all(strbuf, "#N", e->series->name);
@@ -190,7 +240,14 @@ void modify_episode(Episode *e, const char *file, const char *template)
 		eina_strbuf_append(strbuf, suffix);
 	} else {
 		strbuf = eina_strbuf_new();
-		eina_strbuf_append_printf(strbuf, "%d - %s%s", e->number, e->name, suffix);
+
+		if (zero_pad && e->series) {
+			list = eina_list_nth(e->series->seasons, e->season - 1);
+			buf = itoa_pad_by_reference(e->number, eina_list_count(list));
+			eina_strbuf_append_printf(strbuf, "%s - %s%s", buf, e->name, suffix);
+		} else {
+			eina_strbuf_append_printf(strbuf, "%d - %s%s", e->number, e->name, suffix);
+		}
 	}
 
 	path = ecore_file_dir_get(file);
@@ -259,6 +316,9 @@ int main(int argc, char **argv)
 	/* interactive mode defaults to OFF */
 	interactive = EINA_FALSE;
 
+	/* zero padding default ON */
+	zero_pad = EINA_TRUE;
+
 	Ecore_Getopt_Value go_values[] = {
 		ECORE_GETOPT_VALUE_INT(episode_num),
 		ECORE_GETOPT_VALUE_INT(season_num),
@@ -276,6 +336,7 @@ int main(int argc, char **argv)
 		ECORE_GETOPT_VALUE_BOOL(lang_help),
 		ECORE_GETOPT_VALUE_BOOL(qry_help),
 		ECORE_GETOPT_VALUE_BOOL(temp_help),
+		ECORE_GETOPT_VALUE_BOOL(zero_pad),
 		ECORE_GETOPT_VALUE_NONE
 	};
 
