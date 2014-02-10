@@ -39,8 +39,8 @@ const Ecore_Getopt go_options = {
 	"fetch data from TheTVDB.com (and rename files)\n",
 	0,
 	{
-		ECORE_GETOPT_STORE_INT('e', "episode", "episode number"),
-		ECORE_GETOPT_STORE_INT('s', "season", "season number"),
+		ECORE_GETOPT_STORE_INT('e', "episode", "episode number, \"0\" for all"),
+		ECORE_GETOPT_STORE_INT('s', "season", "season number, \"0\" for specials"),
 		ECORE_GETOPT_STORE_STR('E', "eid", "tvdb id of the episode"),
 		ECORE_GETOPT_STORE_STR('N', "sid", "tvdb id of the series"),
 		ECORE_GETOPT_STORE_STR('n', "name", "name, imdb id, or zap2it id of the series"),
@@ -303,7 +303,7 @@ int main(int argc, char **argv)
 {
 	int i, j;
 	int extra_args, go_index;
-	int episode_num = 0, season_num = 0;
+	int episode_num = 0, season_num = -1;
 	int episode_cnt = 0, season_cnt = 0;
 	int ret = EXIT_SUCCESS;
 	char *episode_id = NULL, *language = NULL, *query = NULL, *series_id = NULL, *series_name = NULL, *template = NULL;
@@ -426,10 +426,10 @@ int main(int argc, char **argv)
 	} else if (!series_id && !series_name && !episode_id) {
 		ERR("You need to provide at least an Episode ID or an identifier for a Series.");
 		exit(EXIT_FAILURE);
-	} else if (episode_id && (episode_num || season_num || series_id || series_name)) {
+	} else if (episode_id && (episode_num || season_num > -1 || series_id || series_name)) {
 		ERR("If you pass an Episode ID, no further search options are permitted, as they might conflict.");
 		exit(EXIT_FAILURE);
-	} else if (episode_num && !season_num) {
+	} else if (episode_num && season_num == -1) {
 		ERR("If you're looking for a episode by number, you have to provide the season, too.");
 		exit(EXIT_FAILURE);
 	} else if (series_id && series_name) {
@@ -458,7 +458,7 @@ int main(int argc, char **argv)
 	/* initialize episode, if no episode requested, get all of them */
 	if (episode_id)
 		episode = etvdb_episode_by_id_get(episode_id, series);
-	else if (episode_num && season_num)
+	else if (episode_num && season_num > -1)
 		episode = etvdb_episode_by_number_get(series, season_num, episode_num);
 	else
 		etvdb_series_populate(series);
@@ -477,13 +477,17 @@ int main(int argc, char **argv)
 		print_csv_head();
 		if (episode)
 			print_csv_episode(episode);
-		else if (!season_num) {
+		else if (season_num == -1) {
 			EINA_LIST_FOREACH(series->seasons, l, season_list) {
 				EINA_LIST_FOREACH(season_list, sl, episode)
 					print_csv_episode(episode);
 			}
-		} else if (season_num) {
-			season_list = eina_list_nth(series->seasons, season_num - 1);
+		} else if (season_num > -1) {
+			if (season_num == 0)
+				season_list = series->specials;
+			else
+				season_list = eina_list_nth(series->seasons, season_num - 1);
+
 			EINA_LIST_FOREACH(season_list, sl, episode)
 				print_csv_episode(episode);
 		}
@@ -491,8 +495,12 @@ int main(int argc, char **argv)
 	} else {
 		if (episode) {
 			modify_episode(episode, argv[go_index], template);
-		} else if (season_num) {
-			season_list = eina_list_nth(series->seasons, season_num - 1);
+		} else if (season_num > -1) {
+			if (season_num == 0)
+				season_list = series->specials;
+			else
+				season_list = eina_list_nth(series->seasons, season_num - 1);
+
 			season_cnt = eina_list_count(season_list);
 			EINA_LIST_FOREACH(season_list, sl, episode) {
 				if (((go_index - extra_args) >= season_cnt) || (argc == go_index))
