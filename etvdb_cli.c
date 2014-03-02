@@ -503,7 +503,7 @@ int main(int argc, char **argv)
 
 			season_cnt = eina_list_count(season_list);
 			EINA_LIST_FOREACH(season_list, sl, episode) {
-				if (((go_index - extra_args) >= season_cnt) || (argc == go_index))
+				if (((argc - go_index) > season_cnt) || (argc == go_index))
 					break;
 				else
 					modify_episode(episode, argv[go_index++], template);
