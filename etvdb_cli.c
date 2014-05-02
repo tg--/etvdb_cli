@@ -169,7 +169,7 @@ Eina_Bool print_query_episode(const char *q, Episode *e)
 		printf("%d\n", e->season);
 	else if (!strcmp(q, "eaired"))
 		printf("%s\n", e->firstaired);
-	/* if queeina_list_nth_list it up in series */
+	/* if query isn't valid for episodes, look it up in series */
 	else {
 		if (!print_query_series(q, e->series))
 			return EINA_FALSE;
