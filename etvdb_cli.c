@@ -251,6 +251,7 @@ void modify_episode(Episode *e, const char *file, const char *template)
 	}
 
 	path = ecore_file_dir_get(file);
+	eina_strbuf_replace_all(strbuf, "/", "-");
 	eina_strbuf_prepend_char(strbuf, '/');
 	eina_strbuf_prepend(strbuf, path);
 
