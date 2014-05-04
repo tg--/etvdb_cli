@@ -187,7 +187,7 @@ void modify_episode(Episode *e, const char *file, const char *template)
 	char *filename;
 	int num;
 	Eina_List *list;
-	Eina_Strbuf *strbuf;
+	Eina_Strbuf *strbuf, *tmp_strbuf;
 
 	if (!ecore_file_exists(file)) {
 		ERR("File \'%s\' doesn't exist. Nothing to do here.", file);
@@ -216,8 +216,11 @@ void modify_episode(Episode *e, const char *file, const char *template)
 		eina_strbuf_replace_all(strbuf, "#e", buf);
 		free(buf);
 
-		/* Episode name */
-		eina_strbuf_replace_all(strbuf, "#n", e->name);
+		/* Episode name - path delimitters replaced */
+		tmp_strbuf = eina_strbuf_manage_new(e->name);
+		eina_strbuf_replace_all(tmp_strbuf, "/", "-");
+		eina_strbuf_replace_all(strbuf, "#n", eina_strbuf_string_get(tmp_strbuf));
+		eina_strbuf_free(tmp_strbuf);
 
 		/* Season number */
 		if (zero_pad && e->series)
@@ -230,8 +233,11 @@ void modify_episode(Episode *e, const char *file, const char *template)
 		eina_strbuf_replace_all(strbuf, "#s", buf);
 		free(buf);
 
-		/* Series name */
-		eina_strbuf_replace_all(strbuf, "#N", e->series->name);
+		/* Series name - path delimitters replaced */
+		tmp_strbuf = eina_strbuf_manage_new(e->series->name);
+		eina_strbuf_replace_all(tmp_strbuf, "/", "-");
+		eina_strbuf_replace_all(strbuf, "#N", eina_strbuf_string_get(tmp_strbuf));
+		eina_strbuf_free(tmp_strbuf);
 
 		path = ecore_file_dir_get(eina_strbuf_string_get(strbuf));
 		ecore_file_mkpath(path);
@@ -248,10 +254,12 @@ void modify_episode(Episode *e, const char *file, const char *template)
 		} else {
 			eina_strbuf_append_printf(strbuf, "%d - %s%s", e->number, e->name, suffix);
 		}
+
+		/* replace path delimiters in filenames */
+		eina_strbuf_replace_all(strbuf, "/", "-");
 	}
 
 	path = ecore_file_dir_get(file);
-	eina_strbuf_replace_all(strbuf, "/", "-");
 	eina_strbuf_prepend_char(strbuf, '/');
 	eina_strbuf_prepend(strbuf, path);
 
