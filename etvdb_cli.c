@@ -185,7 +185,6 @@ void modify_episode(Episode *e, const char *file, const char *template)
 	char *suffix;
 	char *path;
 	char *filename;
-	int num;
 	Eina_List *list;
 	Eina_Strbuf *strbuf, *tmp_strbuf;
 
