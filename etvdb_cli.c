@@ -133,6 +133,8 @@ void print_csv_head()
 /* answer a query for a series */
 Eina_Bool print_query_series(const char *q, Series *s)
 {
+	Episode *e;
+
 	if (!strcmp(q, "sid"))
 		printf("%s\n", s->id);
 	else if (!strcmp(q, "simdb"))
@@ -143,9 +145,14 @@ Eina_Bool print_query_series(const char *q, Series *s)
 		printf("%s\n", s->overview);
 	else if (!strcmp(q, "runtime"))
 		printf("%d\n", s->runtime);
-	else if (!strcmp(q, "aired_latest"))
-		print_csv_episode(etvdb_episode_latest_aired_get(s, NULL));
-	else {
+	else if (!strcmp(q, "aired_latest")) {
+		e = etvdb_episode_latest_aired_get(s, NULL);
+		if (!e) {
+			ERR("No air date found.");
+			return EINA_FALSE;
+		} else
+			print_csv_episode(e);
+	} else {
 		ERR("Query parameter \'%s\' undefined.", q);
 		return EINA_FALSE;
 	}
