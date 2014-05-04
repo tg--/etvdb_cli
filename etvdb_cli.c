@@ -475,8 +475,10 @@ int main(int argc, char **argv)
 		episode = etvdb_episode_by_id_get(episode_id, series);
 	else if (episode_num && season_num > -1)
 		episode = etvdb_episode_by_number_get(series, season_num, episode_num);
-	else
-		etvdb_series_populate(series);
+
+	/* always poplate the full series so we have all necessary data
+	 * even a single episode can need data of the full series */
+	etvdb_series_populate(series);
 
 	/* in query mode, we answer a single query */
 	if (query) {
