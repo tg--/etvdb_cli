@@ -188,12 +188,12 @@ Eina_Bool print_query_episode(const char *q, Episode *e)
  * template can be NULL so it isn't used */
 Eina_Bool modify_episode(Episode *e, const char *file, const char *template)
 {
-	char *buf;
-	char *suffix;
-	char *path;
-	char *filename;
-	Eina_List *list;
-	Eina_Strbuf *strbuf, *tmp_strbuf;
+	char *buf = NULL;
+	char *suffix = NULL;
+	char *path = NULL;
+	char *filename = NULL;
+	Eina_List *list = NULL;
+	Eina_Strbuf *strbuf = NULL, *tmp_strbuf = NULL;
 	Eina_Bool ret = EINA_TRUE;
 
 	if (!ecore_file_exists(file)) {
@@ -272,6 +272,7 @@ Eina_Bool modify_episode(Episode *e, const char *file, const char *template)
 		path = ecore_file_dir_get(file);
 		eina_strbuf_prepend_char(strbuf, '/');
 		eina_strbuf_prepend(strbuf, path);
+		free(path);
 	}
 
 	if (interactive) {
@@ -293,7 +294,6 @@ Eina_Bool modify_episode(Episode *e, const char *file, const char *template)
 
 END:
 	eina_strbuf_free(strbuf);
-	free(path);
 
 	return ret;
 }
