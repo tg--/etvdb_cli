@@ -186,7 +186,7 @@ Eina_Bool print_query_episode(const char *q, Episode *e)
 
 /* modify episode. rename, tag (TODO)
  * template can be NULL so it isn't used */
-void modify_episode(Episode *e, const char *file, const char *template)
+Eina_Bool modify_episode(Episode *e, const char *file, const char *template)
 {
 	char *buf;
 	char *suffix;
@@ -194,16 +194,17 @@ void modify_episode(Episode *e, const char *file, const char *template)
 	char *filename;
 	Eina_List *list;
 	Eina_Strbuf *strbuf, *tmp_strbuf;
+	Eina_Bool ret = EINA_TRUE;
 
 	if (!ecore_file_exists(file)) {
 		ERR("File \'%s\' doesn't exist. Nothing to do here.", file);
-		return;
+		return EINA_FALSE;
 	}
 
 	suffix = strrchr(file, '.');
 	if (!suffix) {
 		ERR("File \'%s\' has no suffix. Won't touch this.", file);
-		return;
+		return EINA_FALSE;
 	}
 
 	if (template) {
@@ -277,6 +278,7 @@ void modify_episode(Episode *e, const char *file, const char *template)
 		fprintf(stderr, "Rename \"%s\" to \"%s\"? \'y\' to accept: ", file, eina_strbuf_string_get(strbuf));
 		if (!fgets(buf, 32, stdin)) {
 			ERR("Invalid Input. Skipping rename.");
+			ret = EINA_FALSE;
 			goto END;
 		} else if (memcmp(buf, "y", 1)) {
 			fprintf(stderr, "Skipping this file, per your wish.\n");
@@ -284,11 +286,16 @@ void modify_episode(Episode *e, const char *file, const char *template)
 		}
 	}
 
-	ecore_file_mv(file, eina_strbuf_string_get(strbuf));
+	if (!ecore_file_mv(file, eina_strbuf_string_get(strbuf))) {
+		ERR("Renaming %s failed!", eina_strbuf_string_get(strbuf));
+		ret = EINA_FALSE;
+	}
 
 END:
 	eina_strbuf_free(strbuf);
 	free(path);
+
+	return ret;
 }
 
 /* allow the user to interactively select the series from results */
@@ -515,7 +522,8 @@ int main(int argc, char **argv)
 	/* here we go into bulk file mode */
 	} else {
 		if (episode) {
-			modify_episode(episode, argv[go_index], template);
+			if (!modify_episode(episode, argv[go_index], template))
+				ret = EXIT_FAILURE;
 		} else if (season_num > -1) {
 			if (season_num == 0)
 				season_list = series->specials;
@@ -527,7 +535,8 @@ int main(int argc, char **argv)
 				if (((argc - go_index) > season_cnt) || (argc == go_index))
 					break;
 				else
-					modify_episode(episode, argv[go_index++], template);
+					if (!modify_episode(episode, argv[go_index++], template))
+						ret = EXIT_FAILURE;
 			}
 		} else {
 			season_cnt = eina_list_count(series->seasons);
@@ -548,7 +557,8 @@ int main(int argc, char **argv)
 				episode = etvdb_episode_from_series_get(series, i, j);
 				if (!episode)
 					break;
-				modify_episode(episode, argv[go_index], template);
+				if (!modify_episode(episode, argv[go_index], template))
+					ret = EXIT_FAILURE;
 				j++;
 			}
 		}
