@@ -265,9 +265,13 @@ void modify_episode(Episode *e, const char *file, const char *template)
 		eina_strbuf_replace_all(strbuf, "/", "-");
 	}
 
-	path = ecore_file_dir_get(file);
-	eina_strbuf_prepend_char(strbuf, '/');
-	eina_strbuf_prepend(strbuf, path);
+	/* if we already have an absolute path starting with /, don't prepend another one */
+	buf = (char *)eina_strbuf_string_get(strbuf);
+	if (buf[0] != '/') {
+		path = ecore_file_dir_get(file);
+		eina_strbuf_prepend_char(strbuf, '/');
+		eina_strbuf_prepend(strbuf, path);
+	}
 
 	if (interactive) {
 		fprintf(stderr, "Rename \"%s\" to \"%s\"? \'y\' to accept: ", file, eina_strbuf_string_get(strbuf));
