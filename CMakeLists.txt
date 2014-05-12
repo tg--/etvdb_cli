@@ -5,6 +5,9 @@ set(PACKAGE ${CMAKE_PROJECT_NAME})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 
+# definitions
+add_definitions(-DVERSION="${PACKAGE_VERSION}")
+
 INCLUDE(FindPkgConfig)
 pkg_check_modules(EINA REQUIRED eina)
 pkg_check_modules(ECORE REQUIRED ecore)

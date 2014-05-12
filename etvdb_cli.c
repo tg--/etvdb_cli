@@ -33,7 +33,7 @@ Eina_Bool zero_pad;
 const Ecore_Getopt go_options = {
 	"etvdb_cli",
 	"%prog [options] <files>",
-	"0.1",
+	VERSION,
 	"(C) 2013  Thomas Gstaedtner",
 	"This program is free software under the GNU GPL v3 or any later version.\n",
 	"fetch data from TheTVDB.com (and rename files)\n",
