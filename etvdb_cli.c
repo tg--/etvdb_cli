@@ -31,7 +31,7 @@ Eina_Bool interactive;
 Eina_Bool zero_pad;
 
 const Ecore_Getopt go_options = {
-	"etvdb_cli",
+	BINARY_NAME,
 	"%prog [options] <files>",
 	VERSION,
 	"(C) 2013  Thomas Gstaedtner",
