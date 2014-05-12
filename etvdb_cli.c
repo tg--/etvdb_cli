@@ -274,8 +274,10 @@ Eina_Bool modify_episode(Episode *e, const char *file, const char *template)
 		eina_strbuf_prepend(strbuf, path);
 		free(path);
 	}
+	buf = NULL;
 
 	if (interactive) {
+		buf = malloc(32);
 		fprintf(stderr, "Rename \"%s\" to \"%s\"? \'y\' to accept: ", file, eina_strbuf_string_get(strbuf));
 		if (!fgets(buf, 32, stdin)) {
 			ERR("Invalid Input. Skipping rename.");
@@ -285,6 +287,7 @@ Eina_Bool modify_episode(Episode *e, const char *file, const char *template)
 			fprintf(stderr, "Skipping this file, per your wish.\n");
 			goto END;
 		}
+		free(buf);
 	}
 
 	if (!ecore_file_mv(file, eina_strbuf_string_get(strbuf))) {
