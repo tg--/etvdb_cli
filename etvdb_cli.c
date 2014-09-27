@@ -112,7 +112,9 @@ void print_csv_episode(Episode *e)
 	else
 		printf("%s|", e->imdb_id);
 
-	if (e->overview) {
+	if (!e->overview)
+		putchar('|');
+	else {
 		/* for CSV-like output, we need to strip away newlines */
 		p = e->overview;
 		while (*p != 0) {
@@ -122,13 +124,18 @@ void print_csv_episode(Episode *e)
 				putchar(' ');
 			p++;
 		}
+		putchar('|');
 	}
+
+	if (e->firstaired)
+		printf("%s", e->firstaired);
+
 	putchar('\n');
 }
 
 void print_csv_head()
 {
-	printf("Season|Episode|ID|Name|IMDB|Overview\n");
+	printf("Season|Episode|ID|Name|IMDB|Overview|Air-Date\n");
 }
 
 /* answer a query for a series */
