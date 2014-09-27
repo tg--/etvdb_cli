@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(ETVDB_CLI)
 set(PACKAGE_VERSION 0.1.1)
 set(PACKAGE ${CMAKE_PROJECT_NAME})
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -g -ggdb")
 set(BINARY_NAME "etvdb")
 
 # definitions

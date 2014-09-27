@@ -47,6 +47,7 @@ const Ecore_Getopt go_options = {
 		ECORE_GETOPT_STORE_STR('t', "template", "define a template to rename accordingly"),
 		ECORE_GETOPT_STORE_STR('l', "lang", "set language for TVDB (default: en)"),
 		ECORE_GETOPT_STORE_STR('q', "query", "query for a certain property"),
+		ECORE_GETOPT_STORE_STR('d', "date", "specify air date, e.g. 2014-05-25"),
 		ECORE_GETOPT_STORE_TRUE('i', "interactive", "requires user input during runtime"),
 		ECORE_GETOPT_LICENSE('L', "license"),
 		ECORE_GETOPT_COPYRIGHT('C', "copyright"),
@@ -335,7 +336,8 @@ int main(int argc, char **argv)
 	int episode_num = 0, season_num = -1;
 	int episode_cnt = 0, season_cnt = 0;
 	int ret = EXIT_SUCCESS;
-	char *episode_id = NULL, *language = NULL, *query = NULL, *series_id = NULL, *series_name = NULL, *template = NULL;
+	char *date = NULL, *episode_id = NULL, *language = NULL, *query = NULL;
+	char *series_id = NULL, *series_name = NULL, *template = NULL;
 	Eina_Bool go_quit = EINA_FALSE, lang_help = EINA_FALSE, qry_help = EINA_FALSE, temp_help = EINA_FALSE;
 	Eina_List *series_list = NULL, *season_list = NULL, *l, *sl;
 	Eina_Hash *languages = NULL;
@@ -357,6 +359,7 @@ int main(int argc, char **argv)
 		ECORE_GETOPT_VALUE_STR(template),
 		ECORE_GETOPT_VALUE_STR(language),
 		ECORE_GETOPT_VALUE_STR(query),
+		ECORE_GETOPT_VALUE_STR(date),
 		ECORE_GETOPT_VALUE_BOOL(interactive),
 		ECORE_GETOPT_VALUE_BOOL(go_quit),
 		ECORE_GETOPT_VALUE_BOOL(go_quit),
@@ -464,6 +467,15 @@ int main(int argc, char **argv)
 	} else if (series_id && series_name) {
 		ERR("You cannot use a Series ID and a Series name at the same time, they conflict.");
 		exit(EXIT_FAILURE);
+	} else if (date && extra_args > 1) {
+		ERR("If you specify a date, at most one file can be renamed.");
+		exit(EXIT_FAILURE);
+	} else if (date && (episode_id || episode_num || season_num > -1)) {
+		ERR("If you specify a date, you probably don't want to specify a episode or season.");
+		exit(EXIT_FAILURE);
+	} else if (date && query) {
+		ERR("Queries and lookup by date can't be combined.");
+		exit(EXIT_FAILURE);
 	}
 
 	/* find the series - ask user in interactive mode, else just pick the first one */
@@ -507,15 +519,26 @@ int main(int argc, char **argv)
 		}
 	/* if no files are passed, we just print everything requested in a simple CSV format */
 	} else if (!extra_args && !query) {
-		print_csv_head();
-		if (episode)
+		if (episode) {
+			print_csv_head();
 			print_csv_episode(episode);
-		else if (season_num == -1) {
+		} else if (date) {
+			episode = etvdb_episode_by_date_get(series, date);
+			if (episode) {
+				print_csv_head();
+				print_csv_episode(episode);
+			} else {
+				ERR("No episode with air-date %s found for %s.", date, series->name);
+				ret = EXIT_FAILURE;
+			}
+		} else if (season_num == -1) {
+			print_csv_head();
 			EINA_LIST_FOREACH(series->seasons, l, season_list) {
 				EINA_LIST_FOREACH(season_list, sl, episode)
 					print_csv_episode(episode);
 			}
 		} else if (season_num > -1) {
+			print_csv_head();
 			if (season_num == 0)
 				season_list = series->specials;
 			else
@@ -528,6 +551,9 @@ int main(int argc, char **argv)
 	} else {
 		if (episode) {
 			if (!modify_episode(episode, argv[go_index], template))
+				ret = EXIT_FAILURE;
+		} else if (date) {
+			if (!modify_episode(etvdb_episode_by_date_get(series, date), argv[go_index], template))
 				ret = EXIT_FAILURE;
 		} else if (season_num > -1) {
 			if (season_num == 0)
