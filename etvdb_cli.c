@@ -415,7 +415,6 @@ int main(int argc, char **argv)
 		printf("Queries allow to retrieve any single property of an episode or series.\n"
 			"They are available by series or by episode (like in upstream TVDB),\n"
 			"Episode Parameters:\n"
-			"\taired_latest\t-- Episode that aired most recently (in CSV format)\n"
 			"\teaired\t\t-- Episode aired first at this date\n"
 			"\teid\t\t-- Episode ID\n"
 			"\teimdb\t\t-- Episode IMDB ID\n"
@@ -424,6 +423,7 @@ int main(int argc, char **argv)
 			"\tenumber\t\t-- Episode Number\n"
 			"\teseason\t\t-- Season the Episode is in\n"
 			"Series Parameters:\n"
+			"\taired_latest\t-- Episode that aired most recently (in CSV format)\n"
 			"\tsid\t\t-- Series ID\n"
 			"\tsimdb\t\t-- Series IMDB ID\n"
 			"\tsname\t\t-- Series Name\n"
@@ -511,8 +511,8 @@ int main(int argc, char **argv)
 
 	/* poplate the full series so we have all necessary data
 	 * even a single episode can need data of the full series
-	 * only qry mode shouldn't load everything */
-	if (!query)
+	 * only qry mode shouldn't load everything, with the exception of aired_latest */
+	if (!query || !strcmp(query, "aired_latest"))
 		etvdb_series_populate(series);
 
 	/* in query mode, we answer a single query */
