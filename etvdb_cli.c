@@ -160,6 +160,13 @@ Eina_Bool print_query_series(const char *q, Series *s)
 			return EINA_FALSE;
 		} else
 			print_csv_episode(e);
+	} else if (!strcmp(q, "airs_next")) {
+		e = etvdb_episode_airs_next_get(s, NULL);
+		if (!e) {
+			ERR("No new episode scheduled.");
+			return EINA_FALSE;
+		} else
+			print_csv_episode(e);
 	} else {
 		ERR("Query parameter \'%s\' undefined.", q);
 		return EINA_FALSE;
@@ -424,6 +431,7 @@ int main(int argc, char **argv)
 			"\teseason\t\t-- Season the Episode is in\n"
 			"Series Parameters:\n"
 			"\taired_latest\t-- Episode that aired most recently (in CSV format)\n"
+			"\tairs_next\t-- Episode that airs next (in CSV format)\n"
 			"\tsid\t\t-- Series ID\n"
 			"\tsimdb\t\t-- Series IMDB ID\n"
 			"\tsname\t\t-- Series Name\n"
@@ -511,8 +519,8 @@ int main(int argc, char **argv)
 
 	/* poplate the full series so we have all necessary data
 	 * even a single episode can need data of the full series
-	 * only qry mode shouldn't load everything, with the exception of aired_latest */
-	if (!query || !strcmp(query, "aired_latest"))
+	 * only qry mode shouldn't load everything, with the exception of aired_latest/airs_next */
+	if (!query || !strcmp(query, "aired_latest") || !strcmp(query, "airs_next"))
 		etvdb_series_populate(series);
 
 	/* in query mode, we answer a single query */
