@@ -514,8 +514,13 @@ int main(int argc, char **argv)
 	/* initialize episode, if no episode requested, get all of them */
 	if (episode_id)
 		episode = etvdb_episode_by_id_get(episode_id, &series);
-	else if (episode_num && season_num > -1)
+	else if (episode_num && season_num > -1) {
 		episode = etvdb_episode_by_number_get(series, season_num, episode_num);
+		if (!episode) {
+			ERR("Episode %d in Season %d doesn't exist (yet).", episode_num, season_num);
+			exit(EXIT_FAILURE);
+		}
+	}
 
 	/* poplate the full series so we have all necessary data
 	 * even a single episode can need data of the full series
