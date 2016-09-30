@@ -43,6 +43,7 @@ const Ecore_Getopt go_options = {
 		ECORE_GETOPT_STORE_INT('s', "season", "season number, \"0\" for specials"),
 		ECORE_GETOPT_STORE_STR('E', "eid", "tvdb id of the episode"),
 		ECORE_GETOPT_STORE_STR('N', "sid", "tvdb id of the series"),
+		ECORE_GETOPT_STORE_STR('f', "find", "find and list series by name"),
 		ECORE_GETOPT_STORE_STR('n', "name", "name, imdb id, or zap2it id of the series"),
 		ECORE_GETOPT_STORE_STR('t', "template", "define a template to rename accordingly"),
 		ECORE_GETOPT_STORE_STR('l', "lang", "set language for TVDB (default: en)"),
@@ -351,7 +352,7 @@ int main(int argc, char **argv)
 	int episode_cnt = 0, season_cnt = 0;
 	int ret = EXIT_SUCCESS;
 	char *date = NULL, *episode_id = NULL, *language = NULL, *query = NULL;
-	char *series_id = NULL, *series_name = NULL, *template = NULL;
+	char *series_id = NULL, *series_find_name = NULL ,*series_name = NULL, *template = NULL;
 	Eina_Bool go_quit = EINA_FALSE, lang_help = EINA_FALSE, qry_help = EINA_FALSE, temp_help = EINA_FALSE;
 	Eina_List *series_list = NULL, *season_list = NULL, *l, *sl;
 	Eina_Hash *languages = NULL;
@@ -369,6 +370,7 @@ int main(int argc, char **argv)
 		ECORE_GETOPT_VALUE_INT(season_num),
 		ECORE_GETOPT_VALUE_STR(episode_id),
 		ECORE_GETOPT_VALUE_STR(series_id),
+		ECORE_GETOPT_VALUE_STR(series_find_name),
 		ECORE_GETOPT_VALUE_STR(series_name),
 		ECORE_GETOPT_VALUE_STR(template),
 		ECORE_GETOPT_VALUE_STR(language),
@@ -421,6 +423,7 @@ int main(int argc, char **argv)
 	if (qry_help) {
 		printf("Queries allow to retrieve any single property of an episode or series.\n"
 			"They are available by series or by episode (like in upstream TVDB),\n"
+			"Additionally they can be used for the --find parameter.\n"
 			"Episode Parameters:\n"
 			"\teaired\t\t-- Episode aired first at this date\n"
 			"\teid\t\t-- Episode ID\n"
@@ -470,7 +473,7 @@ int main(int argc, char **argv)
 	} else if ((episode_id || episode_num) && (extra_args) > 1) {
 		ERR("You are looking for a Episode, but passed more than one file; please use only one file.");
 		exit(EXIT_FAILURE);
-	} else if (!series_id && !series_name && !episode_id) {
+	} else if (!series_id && !series_name && !episode_id && !series_find_name) {
 		ERR("You need to provide at least an Episode ID or an identifier for a Series.");
 		exit(EXIT_FAILURE);
 	} else if (episode_id && (episode_num || season_num > -1 || series_id || series_name)) {
@@ -481,6 +484,9 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	} else if (series_id && series_name) {
 		ERR("You cannot use a Series ID and a Series name at the same time, they conflict.");
+		exit(EXIT_FAILURE);
+	} else if (series_find_name && (series_name || series_id || episode_id || season_num > -1 || episode_num)) {
+		ERR("Find series is a bulk operation and cannot be used with single series/episode qualifiers.");
 		exit(EXIT_FAILURE);
 	} else if (date && extra_args > 1) {
 		ERR("If you specify a date, at most one file can be renamed.");
@@ -503,6 +509,35 @@ int main(int argc, char **argv)
 			select_series(series_list, &series);
 		else
 			series = etvdb_series_from_list_get(series_list, 0);
+	}
+
+	/* find ALL matching series - this allows for bulk operations on the found series list
+	 *
+	 * this operation is somewhat unique, as it is the only function handling more than 1 series,
+	 * so it reimplements it's own query and csv mode. This is a workaround of sorts that should
+	 * be removed by a refactoring that isn't so single-series focused.
+	 * The find qry output will be in CSV, to make it practically usable.
+	 */
+	if (series_find_name) {
+		series_list = etvdb_series_find(series_find_name);
+		if (!series_list) {
+			ERR("Series \"%s\" not found.", series_name);
+			exit(EXIT_FAILURE);
+		}
+
+		/* either answer querys, or print all names. Full CSV probably isn't that useful */
+		EINA_LIST_FOREACH(series_list, l, series) {
+			if (query) {
+				printf("%s|", series->name);
+				print_query_series(query, series);
+			} else {
+				printf("%s\n", series->name);
+			}
+		}
+
+		/* this GOTO isn't particularly nice, but due to the special case for this feature
+		 * we need to skip all the logic that otherwise generally applies. */
+		goto END;
 	}
 
 	/* make sure we have a valid series structure */
@@ -616,6 +651,7 @@ int main(int argc, char **argv)
 	}
 	/* TODO: detection mode, detect episode and season based on input filename */
 
+END:
 	EINA_LIST_FREE(series_list, series)
 		etvdb_series_free(series);
 
