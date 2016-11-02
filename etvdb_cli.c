@@ -543,6 +543,11 @@ int main(int argc, char **argv)
 	/* make sure we have a valid series structure */
 	if (!series && series_id) {
 		series = etvdb_series_by_id_get(series_id);
+		if (!series) {
+			ERR("Series with ID %s doesn't exist.", series_id);
+			exit(EXIT_FAILURE);
+		}
+
 		series_list = eina_list_prepend(series_list, series);
 	}
 
